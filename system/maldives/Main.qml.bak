@@ -1,0 +1,391 @@
+import QtQuick 2.0
+import SddmComponents 2.0
+
+Rectangle {
+    id: root
+    width: 640
+    height: 480
+
+    // ===== Paleta calmante (no neón chillón) =====
+    property color night:   "#020617"
+    property color night2:  "#0b1220"
+    property color glassBg: "#0b1220"
+    property color accent:  "#2dd4bf"   // turquesa
+    property color calm:    "#7dd3fc"   // azul calmante (para reloj/hora)
+    property color dim:     "#94a3b8"   // labels
+
+    // ===== Fuentes seguras para SDDM =====
+    property string uiFont: "DejaVu Sans Mono"
+    property string clockFont: "DejaVu Sans Mono"
+
+    property int sessionIndex: sessionBox.index
+    TextConstants { id: textConstants }
+
+    // ===== Helpers ES (evita el “object”) =====
+    function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+    function dayNameEs(d) {
+        var days = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+        return days[d];
+    }
+    function monthNameEs(m) {
+        var months = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+        return months[m];
+    }
+
+    function updateClock() {
+        var now = new Date();
+        dayNum.text  = "" + now.getDate(); // grande (Rainmeter style)
+        dayName.text = dayNameEs(now.getDay());
+        timeText.text = pad2(now.getHours()) + ":" + pad2(now.getMinutes());
+        dateText.text = pad2(now.getDate()) + " de " + monthNameEs(now.getMonth()) + " " + now.getFullYear();
+    }
+
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: updateClock()
+    }
+
+    Component.onCompleted: {
+        updateClock();
+        passBox.focus = true;
+    }
+
+    // ===== Mensajes SDDM =====
+    Connections {
+        target: sddm
+        onLoginSucceeded: {
+            statusText.color = calm
+            statusText.text = textConstants.loginSucceeded
+        }
+        onLoginFailed: {
+            passBox.text = ""
+            statusText.color = calm
+            statusText.text = textConstants.loginFailed
+        }
+        onInformationMessage: {
+            statusText.color = calm
+            statusText.text = message
+        }
+    }
+
+    // ===== Fondo del tema =====
+    Background {
+        anchors.fill: parent
+        source: config.background
+        fillMode: Image.PreserveAspectCrop
+        onStatusChanged: {
+            if (status === Image.Error && source !== config.defaultBackground)
+                source = config.defaultBackground
+        }
+    }
+
+    // ===== Overlay sutil =====
+    Rectangle {
+        anchors.fill: parent
+        color: night
+        opacity: 0.22
+    }
+
+    // =========================================================
+    // IZQUIERDA (Rainmeter style) – entra un poco al centro
+    // Ajusta leftMargin/topMargin si quieres moverlo más/menos
+    // =========================================================
+    Column {
+        id: rainBlock
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 140      // <-- “ligeramente hacia el centro-izq”
+        anchors.topMargin: 120       // <-- baja un poco para no quedar en esquina
+        spacing: 8
+
+        // Día grande
+        Text {
+            id: dayNum
+            text: "16"
+            font.family: clockFont
+            font.pixelSize: 110
+            font.weight: Font.DemiBold
+            color: calm
+            style: Text.Outline
+            styleColor: "#051018"
+        }
+
+        // Nombre del día
+        Text {
+            id: dayName
+            text: "viernes"
+            font.family: clockFont
+            font.pixelSize: 26
+            font.weight: Font.Medium
+            color: accent
+            opacity: 0.95
+            style: Text.Outline
+            styleColor: "#051018"
+        }
+
+        // Hora
+        Text {
+            id: timeText
+            text: "15:45"
+            font.family: clockFont
+            font.pixelSize: 40
+            font.weight: Font.Medium
+            color: calm
+            opacity: 0.95
+            style: Text.Outline
+            styleColor: "#051018"
+        }
+
+        // Fecha
+        Text {
+            id: dateText
+            text: "16 de enero 2026"
+            font.family: clockFont
+            font.pixelSize: 18
+            font.weight: Font.Light
+            color: dim
+            opacity: 0.95
+            style: Text.Outline
+            styleColor: "#051018"
+        }
+    }
+
+    // =========================================================
+    // DERECHA – Login glass sin tapar el centro
+    // =========================================================
+    Rectangle {
+        id: panel
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.rightMargin: 72
+
+        width: 430
+        height: Math.max(370, content.implicitHeight + 80)
+        radius: 22
+
+        color: glassBg
+        opacity: 0.78
+        border.width: 2
+        border.color: accent
+
+        // sombra suave
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -10
+            radius: 26
+            color: "#000000"
+            opacity: 0.20
+            z: -1
+        }
+
+        Column {
+            id: content
+            anchors.centerIn: parent
+            width: parent.width - 64
+            spacing: 12
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Inicio de sesión"
+                font.family: clockFont
+                font.pixelSize: 22
+                font.weight: Font.DemiBold
+                color: calm
+            }
+
+            // ===== Usuario: seleccionar (no escribir) =====
+            Column {
+                spacing: 6
+                Text {
+                    text: "Usuario"
+                    font.family: uiFont
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: dim
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 40
+                    radius: 14
+                    color: night2
+                    opacity: 0.72
+                    border.width: 2
+                    border.color: accent
+
+                    ComboBox {
+                        id: userBox
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        font.pixelSize: 14
+
+                        // userModel es el modelo de usuarios
+                        model: userModel
+                        index: userModel.lastIndex
+                        // en muchos temas funciona con displayRole implícito
+                        // si tu lista sale vacía, me dices y lo ajusto por rol real
+
+                        arrowIcon: "angle-down.png"
+                        opacity: 0.92
+
+                        KeyNavigation.backtab: rebootButton
+                        KeyNavigation.tab: passBox
+                    }
+                }
+            }
+
+            // ===== Password: glass (sin blanco) =====
+            Column {
+                spacing: 6
+                Text {
+                    text: "Contraseña"
+                    font.family: uiFont
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: dim
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 40
+                    radius: 14
+                    color: night2
+                    opacity: 0.72
+                    border.width: 2
+                    border.color: accent
+
+                    PasswordBox {
+                        id: passBox
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        font.pixelSize: 14
+                        opacity: 0.92
+
+                        KeyNavigation.backtab: userBox
+                        KeyNavigation.tab: sessionBox
+
+                        Keys.onPressed: {
+                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                // usuario seleccionado
+                                var u = userModel.get(userBox.index).name
+                                sddm.login(u, passBox.text, sessionIndex)
+                                event.accepted = true
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ===== Sesión / Teclado =====
+            Row {
+                spacing: 12
+                Column {
+                    width: content.width * 0.62
+                    spacing: 6
+                    Text { text: "Sesión"; font.family: uiFont; font.pixelSize: 12; font.bold: true; color: dim }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 40
+                        radius: 14
+                        color: night2
+                        opacity: 0.72
+                        border.width: 2
+                        border.color: accent
+
+                        ComboBox {
+                            id: sessionBox
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            font.pixelSize: 14
+                            arrowIcon: "angle-down.png"
+                            model: sessionModel
+                            index: sessionModel.lastIndex
+                            opacity: 0.92
+
+                            KeyNavigation.backtab: passBox
+                            KeyNavigation.tab: layoutBox
+                        }
+                    }
+                }
+
+                Column {
+                    width: content.width * 0.38
+                    spacing: 6
+                    Text { text: "Teclado"; font.family: uiFont; font.pixelSize: 12; font.bold: true; color: dim }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 40
+                        radius: 14
+                        color: night2
+                        opacity: 0.72
+                        border.width: 2
+                        border.color: accent
+
+                        LayoutBox {
+                            id: layoutBox
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            font.pixelSize: 14
+                            arrowIcon: "angle-down.png"
+                            opacity: 0.92
+
+                            KeyNavigation.backtab: sessionBox
+                            KeyNavigation.tab: loginButton
+                        }
+                    }
+                }
+            }
+
+            Text {
+                id: statusText
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Escribe tu contraseña…"
+                font.family: uiFont
+                font.pixelSize: 11
+                color: calm
+                opacity: 0.9
+            }
+
+            Row {
+                spacing: 10
+                anchors.horizontalCenter: parent.horizontalCenter
+                property int btnW: Math.max(loginButton.implicitWidth,
+                                            shutdownButton.implicitWidth,
+                                            rebootButton.implicitWidth, 98) + 12
+
+                Button {
+                    id: loginButton
+                    text: "Entrar"
+                    width: btnW
+                    onClicked: {
+                        var u = userModel.get(userBox.index).name
+                        sddm.login(u, passBox.text, sessionIndex)
+                    }
+                    KeyNavigation.backtab: layoutBox
+                    KeyNavigation.tab: shutdownButton
+                }
+                Button {
+                    id: shutdownButton
+                    text: "Apagar"
+                    width: btnW
+                    onClicked: sddm.powerOff()
+                    KeyNavigation.backtab: loginButton
+                    KeyNavigation.tab: rebootButton
+                }
+                Button {
+                    id: rebootButton
+                    text: "Reiniciar"
+                    width: btnW
+                    onClicked: sddm.reboot()
+                    KeyNavigation.backtab: shutdownButton
+                    KeyNavigation.tab: userBox
+                }
+            }
+        }
+    }
+}

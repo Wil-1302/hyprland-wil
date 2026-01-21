@@ -1,0 +1,16 @@
+google-chrome
+gtk-engine-murrine
+gtk-engine-murrine-debug
+gtk2
+gtk2-debug
+pokemon-colorscripts-git
+python-gbinder-debug
+python311
+stable-diffusion-webui
+ttf-victor-mono
+wallust
+wallust-debug
+wlogout
+wlogout-debug
+yay-bin
+yay-bin-debug

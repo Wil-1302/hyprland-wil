@@ -1,0 +1,51 @@
+# ===== GRUB THEME (Stable / No PNG errors) =====
+
+desktop-image: "background.png"
++ image {
+  id = "__icon__"
+  file = "icons/unknown.png"
+}
+
+terminal-font: "Terminus Regular 16"
+terminal-border: "0"
+
++ boot_menu {
+  left = 58%
+  top = 55%
+  width = 38%
+  height = 35%
+
+  item_font = "Ubuntu Regular 22"
+  item_color = "#E6E6E6"
+  selected_item_color = "#00ADB5"
+
+  item_height = 42
+  item_padding = 10
+  item_spacing = 8
+
+  # ICONOS
+  icon_width = 44
+  icon_height = 44
+  item_icon_space = 14
+}
+
++ label {
+  left = 58%
+  top = 48%
+  width = 38%
+  align = "center"
+
+  id = "__timeout__"
+  text = "Starting system in %d seconds"
+  font = "Ubuntu Regular 18"
+  color = "#B0B0B0"
+}
++ label {
+  left = 2%
+  top = 96%
+  width = 40%
+  align = "left"
+  text = "Use ↑ ↓ y Enter | E: editar | C: consola"
+  font = "Ubuntu Regular 14"
+  color = "#D0D0D0"
+}

@@ -1,0 +1,480 @@
+import QtQuick 2.0
+import SddmComponents 2.0
+
+Rectangle {
+    id: root
+    width: 640
+    height: 480
+
+    // ===== Paleta Arch-chan =====
+    property color night:   "#0a0e1a"
+    property color night2:  "#131829"
+    property color accent:  "#a78bfa"      // púrpura
+    property color calm:    "#c7d2fe"      // lavanda
+    property color dim:     "#94a3b8"
+
+    property string uiFont: "DejaVu Sans"
+    property string clockFont: "DejaVu Sans"
+
+    TextConstants { id: textConstants }
+
+    // ===== Helpers ES =====
+    function pad2(n) { return (n < 10 ? "0" : "") + n; }
+    function dayNameEs(d) {
+        var days = ["DOMINGO","LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
+        return days[d];
+    }
+    function monthNameEs(m) {
+        var months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
+                     "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+        return months[m];
+    }
+    
+    // Formatear día con espacios estilo FRIDAY -> F R I D A Y
+    function formatDaySpaced(dayName) {
+        var spaced = "";
+        for (var i = 0; i < dayName.length; i++) {
+            spaced += dayName[i];
+            if (i < dayName.length - 1) spaced += " ";
+        }
+        return spaced;
+    }
+    
+    function updateClock() {
+        var now = new Date();
+        dayBig.text  = formatDaySpaced(dayNameEs(now.getDay()));
+        dateMid.text = now.getDate() + " " + monthNameEs(now.getMonth()) + ", " + now.getFullYear() + ".";
+        timeSmall.text = "- " + pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + " -";
+    }
+
+    // ===== Usuario seleccionado =====
+    function selectedUser() {
+        var u = "";
+        var i = userBox.index;
+
+        if (userModel && userModel.get) {
+            var obj = userModel.get(i);
+            if (obj) {
+                u = obj.name || obj.userName || obj.login || obj.username || obj.user || "";
+            }
+        }
+
+        if (!u && userBox.currentText) u = userBox.currentText;
+        if (!u && userModel && userModel.lastUser) u = userModel.lastUser;
+
+        return u;
+    }
+
+    // ===== Login =====
+    function doLogin() {
+        var u = selectedUser();
+        if (!u) {
+            statusText.color = "#ef4444";
+            statusText.text = "⚠ Selecciona un usuario";
+            return;
+        }
+        sddm.login(u, passBox.text, sessionBox.index);
+    }
+
+    // ===== Mensajes SDDM =====
+    Connections {
+        target: sddm
+        onLoginSucceeded: {
+            statusText.color = "#10b981"
+            statusText.text = "✓ Ingresando..."
+        }
+        onLoginFailed: {
+            passBox.text = ""
+            statusText.color = "#ef4444"
+            statusText.text = "✗ Contraseña incorrecta"
+        }
+        onInformationMessage: {
+            statusText.color = calm
+            statusText.text = message
+        }
+    }
+
+    // ===== Fondo =====
+    Background {
+        anchors.fill: parent
+        source: config.background
+        fillMode: Image.PreserveAspectCrop
+        onStatusChanged: {
+            if (status === Image.Error && source !== config.defaultBackground)
+                source = config.defaultBackground
+        }
+    }
+
+    // Overlay oscuro
+    Rectangle {
+        anchors.fill: parent
+        color: night
+        opacity: 0.35
+    }
+
+    // ===== Timer =====
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: updateClock()
+    }
+    Component.onCompleted: {
+        updateClock();
+        passBox.focus = true;
+    }
+
+    // =========================================================
+    // RELOJ ESTILO RAINMETER CENTRADO (ligeramente izquierda)
+    // Letras espaciadas estilo F R I D A Y
+    // =========================================================
+    Column {
+        id: clockColumn
+        anchors.centerIn: parent
+        anchors.horizontalCenterOffset: -180  // Centrado hacia la izquierda
+        spacing: 8
+
+        // DÍA (grande, letras espaciadas)
+        Text {
+            id: dayBig
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "V I E R N E S"
+            font.family: clockFont
+            font.pixelSize: 72
+            font.weight: Font.Light
+            font.letterSpacing: 12
+            color: "#ffffff"
+            opacity: 0.95
+        }
+
+        // FECHA
+        Text {
+            id: dateMid
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "14 SEPTIEMBRE, 2018."
+            font.family: uiFont
+            font.pixelSize: 16
+            font.weight: Font.Normal
+            font.letterSpacing: 1.5
+            color: dim
+            opacity: 0.8
+        }
+
+        // HORA con guiones
+        Text {
+            id: timeSmall
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "- 11:30 AM -"
+            font.family: clockFont
+            font.pixelSize: 20
+            font.weight: Font.Normal
+            font.letterSpacing: 2
+            color: "#ffffff"
+            opacity: 0.7
+        }
+    }
+
+    // =========================================================
+    // PANEL LOGIN (derecha, glassmorphism premium)
+    // =========================================================
+    Rectangle {
+        id: panel
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.rightMargin: 70
+
+        width: 460
+        height: contentCol.height + 80
+        radius: 22
+
+        // Glassmorphism base
+        color: "#12171f"
+        opacity: 0.88
+        border.width: 1
+        border.color: Qt.rgba(167/255, 139/255, 250/255, 0.4)
+
+        // Sombra externa profunda
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -10
+            radius: parent.radius + 4
+            color: "#000000"
+            opacity: 0.5
+            z: -2
+        }
+
+        // Brillo interior
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: "transparent"
+            border.width: 1
+            border.color: Qt.rgba(199/255, 210/255, 254/255, 0.15)
+            z: -1
+        }
+
+        Column {
+            id: contentCol
+            anchors.centerIn: parent
+            width: parent.width - 60
+            spacing: 18
+
+            // Título
+            Column {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 6
+                
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "INICIO DE SESIÓN"
+                    font.family: clockFont
+                    font.pixelSize: 18
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 3
+                    color: calm
+                    opacity: 0.95
+                }
+                
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 80
+                    height: 2
+                    radius: 1
+                    color: accent
+                    opacity: 0.5
+                }
+            }
+
+            Item { height: 4 }
+
+            // === USUARIO ===
+            Column {
+                width: parent.width
+                spacing: 8
+                
+                Text {
+                    text: "USUARIO"
+                    font.family: uiFont
+                    font.pixelSize: 10
+                    font.letterSpacing: 1.5
+                    font.bold: true
+                    color: dim
+                    opacity: 0.7
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 54
+                    radius: 14
+                    color: night2
+                    opacity: 0.7
+                    border.width: 1
+                    border.color: Qt.rgba(167/255, 139/255, 250/255, 0.5)
+
+                    // Glow al focus
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: "transparent"
+                        border.width: 2
+                        border.color: accent
+                        opacity: userBox.activeFocus ? 0.6 : 0
+                        
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                    }
+
+                    ComboBox {
+                        id: userBox
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        font.pixelSize: 15
+                        arrowIcon: "angle-down.png"
+                        model: userModel
+                        index: userModel.lastIndex
+
+                        KeyNavigation.tab: passBox
+                        KeyNavigation.backtab: rebootButton
+                    }
+                }
+            }
+
+            // === CONTRASEÑA ===
+            Column {
+                width: parent.width
+                spacing: 8
+                
+                Text {
+                    text: "CONTRASEÑA"
+                    font.family: uiFont
+                    font.pixelSize: 10
+                    font.letterSpacing: 1.5
+                    font.bold: true
+                    color: dim
+                    opacity: 0.7
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 54
+                    radius: 14
+                    color: night2
+                    opacity: 0.7
+                    border.width: 1
+                    border.color: Qt.rgba(167/255, 139/255, 250/255, 0.5)
+
+                    // Glow al focus
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: "transparent"
+                        border.width: 2
+                        border.color: accent
+                        opacity: passBox.activeFocus ? 0.6 : 0
+                        
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                    }
+
+                    PasswordBox {
+                        id: passBox
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        font.pixelSize: 15
+
+                        KeyNavigation.tab: sessionBox
+                        KeyNavigation.backtab: userBox
+
+                        Keys.onPressed: {
+                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                doLogin();
+                                event.accepted = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // === SESIÓN / TECLADO ===
+            Row {
+                width: parent.width
+                spacing: 12
+
+                Column {
+                    width: (parent.width - 12) * 0.58
+                    spacing: 8
+                    
+                    Text { 
+                        text: "SESIÓN"
+                        font.family: uiFont
+                        font.pixelSize: 10
+                        font.letterSpacing: 1.5
+                        font.bold: true
+                        color: dim
+                        opacity: 0.7
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 50
+                        radius: 14
+                        color: night2
+                        opacity: 0.7
+                        border.width: 1
+                        border.color: Qt.rgba(167/255, 139/255, 250/255, 0.5)
+
+                        ComboBox {
+                            id: sessionBox
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            font.pixelSize: 14
+                            arrowIcon: "angle-down.png"
+                            model: sessionModel
+                            index: sessionModel.lastIndex
+
+                            KeyNavigation.tab: layoutBox
+                            KeyNavigation.backtab: passBox
+                        }
+                    }
+                }
+
+                Column {
+                    width: (parent.width - 12) * 0.42
+                    spacing: 8
+                    
+                    Text { 
+                        text: "TECLADO"
+                        font.family: uiFont
+                        font.pixelSize: 10
+                        font.letterSpacing: 1.5
+                        font.bold: true
+                        color: dim
+                        opacity: 0.7
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 50
+                        radius: 14
+                        color: night2
+                        opacity: 0.7
+                        border.width: 1
+                        border.color: Qt.rgba(167/255, 139/255, 250/255, 0.5)
+
+                        LayoutBox {
+                            id: layoutBox
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            font.pixelSize: 14
+                            arrowIcon: "angle-down.png"
+
+                            KeyNavigation.tab: loginButton
+                            KeyNavigation.backtab: sessionBox
+                        }
+                    }
+                }
+            }
+
+            // Estado
+            Text {
+                id: statusText
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Presiona Enter ↵"
+                font.family: uiFont
+                font.pixelSize: 11
+                font.letterSpacing: 0.8
+                color: calm
+                opacity: 0.75
+            }
+
+            // === BOTONES ===
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 10
+
+                Button {
+                    id: loginButton
+                    text: "ENTRAR"
+                    width: 115
+                    onClicked: doLogin()
+                    KeyNavigation.tab: shutdownButton
+                    KeyNavigation.backtab: layoutBox
+                }
+                Button {
+                    id: shutdownButton
+                    text: "APAGAR"
+                    width: 115
+                    onClicked: sddm.powerOff()
+                    KeyNavigation.tab: rebootButton
+                    KeyNavigation.backtab: loginButton
+                }
+                Button {
+                    id: rebootButton
+                    text: "REINICIAR"
+                    width: 115
+                    onClicked: sddm.reboot()
+                    KeyNavigation.tab: userBox
+                    KeyNavigation.backtab: shutdownButton
+                }
+            }
+        }
+    }
+}

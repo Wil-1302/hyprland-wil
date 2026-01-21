@@ -1,0 +1,14 @@
+# cache y basura
+**/.cache/
+**/*.log
+
+# no subir secretos
+**/.ssh/
+**/.gnupg/
+**/*token*
+**/*secret*
+**/*password*
+
+# cosas grandes innecesarias
+**/node_modules/
+**/.local/share/Trash/
